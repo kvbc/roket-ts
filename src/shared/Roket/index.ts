@@ -1,5 +1,7 @@
 import { RunService } from "@rbxts/services";
 
+export * as Middleware from "./Middleware";
+
 export default class Roket {
 	public static IsServer() {
 		return RunService.IsServer();
