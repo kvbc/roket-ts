@@ -19,8 +19,14 @@
 				},
 				{
 					"commands": ["rojo serve"]
+				},
+				{
+					"commands": ["cd docs && npm start"]
 				}
 			]
+		},
+		{
+			"splitTerminals": [{}]
 		}
 	]
 }
