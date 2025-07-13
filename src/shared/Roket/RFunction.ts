@@ -3,11 +3,11 @@
  * RFunction
  */
 
-type Fn<TArgs = unknown, TRet = unknown, TThis = unknown> = TThis extends undefined
-	? (args: TArgs, thisArg?: TThis) => TRet
-	: (args: TArgs, thisArg: TThis) => TRet;
-type FnArgs<TFunc extends Fn> = Parameters<TFunc>[0];
-type FnThis<TFunc extends Fn> = Parameters<TFunc>[1];
-type FnRet<TFunc extends Fn> = ReturnType<TFunc>;
-
-export { Fn, FnArgs as Args, FnThis as This, FnRet as Ret };
+export namespace RFn {
+	export type Fn<TArgs = any, TRet = any, TThis = any> = TThis extends undefined // eslint-disable-line
+		? (args: TArgs, thisArg?: TThis) => TRet
+		: (args: TArgs, thisArg: TThis) => TRet;
+	export type Args<TFunc extends Fn> = Parameters<TFunc>[0];
+	export type This<TFunc extends Fn> = Parameters<TFunc>[1];
+	export type Ret<TFunc extends Fn> = ReturnType<TFunc>;
+}

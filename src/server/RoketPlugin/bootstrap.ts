@@ -74,7 +74,7 @@ export function bootstrap() {
 	const clientScriptsFolder = ensureEmptyFolder(clientFolder, "Scripts");
 	{
 		const clientRuntime = script.Parent!.WaitForChild("clientRuntime").Clone() as LocalScript;
-		clientRuntime.Parent = StarterPlayer.WaitForChild("StarterPlayerScripts");
+		clientRuntime.Parent = ensureEmptyFolder(StarterPlayer.WaitForChild("StarterPlayerScripts"), "__Roket");
 		clientRuntime.Enabled = true;
 	}
 

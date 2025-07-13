@@ -18,11 +18,8 @@ const specialPrint = Middleware.Wrap(
 
 export default class Test {
 	static RoketStart() {
-		// const car = new Car("toyota", "blue", 600);
-
-		// return;
-
 		print("test service started");
+
 		//#server
 		print("server");
 		myPrint({ message: "whats up?" });
@@ -31,5 +28,8 @@ export default class Test {
 		specialPrint({ message: "aight thats my special print because", color: "pink" });
 		// Middleware.Call(myPrint, mentionColorMiddleware, { message: "this is not a joke", color: "red" });
 		//#end
+
+		const car = new Car("toyota", "blue", 600);
+		car.Drive({ distance: 100 });
 	}
 }

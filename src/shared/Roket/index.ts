@@ -17,10 +17,13 @@ export default class Roket {
 		for (const child of moduleScriptsParent.GetChildren()) {
 			if (child.IsA("ModuleScript")) {
 				const attribute = "__RoketStarted";
+				print(">1", child, child.GetAttribute(attribute));
 				if (child.GetAttribute(attribute) === true) {
 					continue;
 				}
+				print(">2", child);
 				const module = require(child);
+				print(">3", child, attribute, module, typeOf(module));
 				if (
 					typeIs(module, "table") &&
 					"default" in module &&
