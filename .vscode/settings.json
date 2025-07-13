@@ -11,6 +11,8 @@
 	},
 	"eslint.run": "onType",
 	"eslint.format.enable": true,
+
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"restoreTerminals.terminals": [
 		{
 			"splitTerminals": [
@@ -21,7 +23,7 @@
 					"commands": ["rojo serve"]
 				},
 				{
-					"commands": ["cd docs && npm start"]
+					"commands": ["cd docs", "npm start"]
 				}
 			]
 		},

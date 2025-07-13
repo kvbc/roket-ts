@@ -6,202 +6,88 @@
  * @module Roket
  * @author kvbc
  * @version 1.0.0
- * @description
- *
- * Overview of different possible use cases
- *
- * | Args & Middlewares & Self  | Args & Middlewares | Args & Self    | Middlewares    | Self           |
- * | -------------------------- | ------------------ | -------------- | -------------- | -------------- |
- * | -                          | Call               | CallSelf       | Wrap           | WrapSelf       |
- * | CallMethod                 | -                  | CallMethodSelf | WrapMethod     | WrapMethodSelf |
  *
  */
 
-type EmptyObject = Record<string, unknown>;
-type Args = Record<string, unknown>;
-type MethodArgs<TSelf> = Args & { self: TSelf };
+import { Middleware, RFn, Types } from ".";
 
-type Function = (args: Args) => unknown;
-type Method<TSelf> = (args: MethodArgs<TSelf>) => unknown;
+// export type Methods<T> = {
+// 	[K in keyof T as T[K] extends (...args: any[]) => any ? K : never]: T[K]; // eslint-disable-line
+// };
 
-type MiddlewaresOf<TMiddleware> = TMiddleware | TMiddleware[];
+type Middleware<TArgs = unknown, TRet = unknown, TThis = unknown> = RFn.Fn<TArgs, TRet | void, TThis>;
+type Middlewares<TArgs = unknown, TRet = unknown, TThis = unknown> = Partial<{
+	before: Middleware<TArgs, TRet, TThis>[];
+	after: Middleware<TArgs, TRet, TThis>[];
+}>;
+type KeyedMiddlewares<TSelf = undefined> = TSelf extends undefined
+	? Partial<Record<string, Middlewares>>
+	: Partial<{
+			[K in keyof TSelf]: Middlewares<Parameters<TSelf[K]>[1], ReturnType<TSelf[K]>, Parameters<TSelf[K]>[0]>;
+		}>;
+type Self = { middlewares?: KeyedMiddlewares };
 
-type BaseMiddleware<TArgs extends Args, TRet = EmptyObject> = (args: TArgs) => TRet | void;
-type BaseMiddlewares<TArgs extends Args, TRet = EmptyObject> = MiddlewaresOf<BaseMiddleware<TArgs, TRet>>;
+export { Middleware as Fn, Middlewares as Fns, KeyedMiddlewares as Middlewares };
 
-type Middleware<TFunc extends Function> = BaseMiddleware<Parameters<TFunc>[0], ReturnType<TFunc>>;
-type Middlewares<TFunc extends Function> = MiddlewaresOf<Middleware<TFunc>>;
-
-type MethodMiddleware<TSelf, TMethod extends Method<TSelf>> = BaseMiddleware<
-	Parameters<TMethod>[0],
-	ReturnType<TMethod>
->;
-type MethodMiddlewares<TSelf, TMethod extends Method<TSelf>> = MiddlewaresOf<MethodMiddleware<TSelf, TMethod>>;
-
-type KeyedMiddlewares<TSelf> = Partial<Record<keyof TSelf, Middlewares<Function>>>;
-type KeyedMethodMiddlewares<TSelf> = Partial<Record<keyof TSelf, MethodMiddlewares<TSelf, Method<TSelf>>>>;
-type SelfKeyedMiddlewares<
-	TSelf = Record<string, unknown>,
-	TKeyedMiddlewares extends KeyedMiddlewares<TSelf> = KeyedMiddlewares<TSelf>,
-> = {
-	middlewares: TKeyedMiddlewares;
-};
-type SelfKeyedMethodMiddlewares<
-	TSelf = Record<string, unknown>,
-	TKeyedMethodMiddlewares extends KeyedMethodMiddlewares<TSelf> = KeyedMethodMiddlewares<TSelf>,
-> = {
-	methodMiddlewares: TKeyedMethodMiddlewares;
-};
-
-export { Middleware as Fn, Middlewares as Fns, MethodMiddleware as FnSelf, MethodMiddlewares as FnsSelf };
-
-/*
- * Call given function with given args and middlewares.
- * Internal: meant to only be used in this file as there is
- *           a public alias `Call` that takes in generic <Function>
- *           which is much cleaner in my opinion
- */
-function callBase<TArgs extends Args, TRet = void>(
+export function call<TArgs, TRet, TThis>(
 	args: TArgs,
-	middlewares: BaseMiddlewares<TArgs, TRet>,
-	func: (args: TArgs) => TRet,
+	middlewares: Middlewares<TArgs, TRet, TThis>,
+	fn: RFn.Fn<TArgs, TRet, TThis>,
+	fnThis: TThis,
 ): TRet {
-	if (typeIs(middlewares, "function")) {
-		middlewares = [middlewares];
-	}
-	for (const middleware of middlewares) {
-		const ret = middleware(args);
+	for (const middleware of middlewares.before ?? []) {
+		const ret = middleware(args, fnThis);
 		if (ret !== undefined) {
 			return ret;
 		}
 	}
-	return func(args);
-}
 
-function getSelfMiddlewares<
-	TSelf extends SelfKeyedMiddlewares<unknown, TKeyedMiddlewares>,
-	TKeyedMiddlewares extends KeyedMiddlewares<TSelf>,
-	TFunc extends Function,
->(selfObj: TSelf, key: keyof TKeyedMiddlewares): Middlewares<TFunc> {
-	return selfObj.middlewares[key] ?? [];
-}
+	const funcRet = fn(args, fnThis);
 
-function getSelfMethodMiddlewares<
-	TSelf extends SelfKeyedMethodMiddlewares<unknown, TKeyedMethodMiddlewares>,
-	TKeyedMethodMiddlewares extends KeyedMethodMiddlewares<TSelf>,
-	TMethod extends Method<TSelf>,
->(selfObj: TSelf, key: keyof TKeyedMethodMiddlewares): MethodMiddlewares<TSelf, TMethod> {
-	return selfObj.methodMiddlewares[key] ?? [];
-}
+	for (const middleware of middlewares.after ?? []) {
+		const ret = middleware(args, fnThis);
+		if (ret !== undefined) {
+			return ret;
+		}
+	}
 
-export function Load() {}
-
-export function LoadMethods() {}
-
-/*
- *  ______                _   _
- * |  ____|              | | (_)
- * | |__ _   _ _ __   ___| |_ _  ___  _ __
- * |  __| | | | '_ \ / __| __| |/ _ \| '_ \
- * | |  | |_| | | | | (__| |_| | (_) | | | |
- * |_|   \__,_|_| |_|\___|\__|_|\___/|_| |_|
- *
- */
-
-/*
- * Call given function with given args and middlewares.
- * (Clean version with <Function> generics)
- */
-export function Call<TFunc extends Function>(
-	args: Parameters<TFunc>[0],
-	middlewares: Middlewares<TFunc>,
-	func: (_args: typeof args) => ReturnType<TFunc>,
-): ReturnType<TFunc> {
-	return callBase(args, middlewares, func);
+	return funcRet;
 }
 
 /*
- * Call given function with given args
- * and middlewares from self
+ * Call given function with given args, and middlewares
  */
-export function CallSelf<
-	TSelf extends SelfKeyedMiddlewares<unknown, TKeyedMiddlewares>,
-	TKeyedMiddlewares extends KeyedMiddlewares<TSelf>,
-	TFunc extends Function,
->(
-	selfObj: TSelf,
-	args: Parameters<TFunc>[0],
-	key: keyof TKeyedMiddlewares,
-	func: (_args: typeof args) => ReturnType<TFunc>,
-): ReturnType<TFunc> {
-	const middlewares = getSelfMiddlewares(selfObj, key);
-	return Call(args, middlewares, func);
+export function Call<TArgs, TRet>(
+	args: TArgs,
+	middlewares: Middlewares<TArgs, TRet, undefined>,
+	fn: RFn.Fn<TArgs, TRet, undefined>,
+): TRet {
+	return call<TArgs, TRet, undefined>(args, middlewares, fn, undefined);
 }
 
-/*
- * Wrap given function with given middlewares
- */
-export function Wrap<TFunc extends Function>(
-	middlewares: Middlewares<TFunc>,
-	func: (_args: Parameters<TFunc>[0]) => ReturnType<TFunc>,
-): typeof func {
+export function Wrap<TArgs, TRet>(
+	middlewares: Middlewares<TArgs, TRet, undefined>,
+	func: RFn.Fn<TArgs, TRet, undefined>,
+): (args: TArgs) => TRet {
 	return (args) => {
-		return Call(args, middlewares, func);
+		return Call<TArgs, TRet>(args, middlewares, func);
 	};
 }
 
 /*
- * Wrap given function with given args
- * and middlewares from self
+ * Wrap given function with given middlewares.
  */
-export function WrapSelf<
-	TSelf extends SelfKeyedMiddlewares<unknown, TKeyedMiddlewares>,
-	TKeyedMiddlewares extends KeyedMiddlewares<TSelf>,
-	TFunc extends Function,
->(selfObj: TSelf, key: keyof TKeyedMiddlewares, func: (args: Parameters<TFunc>[0]) => ReturnType<TFunc>): typeof func {
-	return (args) => {
-		return CallSelf(selfObj, args, key, func);
+export function WrapKey<TSelf extends Self, TArgs = Types.EmptyObject, TRet = void>(
+	key: keyof TSelf,
+	func: RFn.Fn<TArgs, TRet, TSelf>,
+): (thisArg: TSelf, args: TArgs) => TRet {
+	return (thisArg, args) => {
+		const nokeyMiddlewares: Middlewares<TArgs, TRet, TSelf> = {
+			before: [],
+			after: [],
+		};
+		const middlewares: Middlewares<TArgs, TRet, TSelf> =
+			key === undefined ? nokeyMiddlewares : (thisArg?.middlewares?.[key] ?? nokeyMiddlewares);
+		return call<TArgs, TRet, TSelf>(args, middlewares, func, thisArg);
 	};
 }
-
-/*
- *   __  __      _   _               _
- *  |  \/  |    | | | |             | |
- *  | \  / | ___| |_| |__   ___   __| |
- *  | |\/| |/ _ \ __| '_ \ / _ \ / _` |
- *  | |  | |  __/ |_| | | | (_) | (_| |
- *  |_|  |_|\___|\__|_| |_|\___/ \__,_|
- *
- */
-
-/*
- * Call given method with given self, args, and middlewares
- */
-export function CallMethod<TSelf, TMethod extends Method<TSelf>>(
-	selfObj: TSelf,
-	args: Omit<Parameters<TMethod>[0], "self">,
-	middlewares: MethodMiddlewares<TSelf, TMethod>,
-	method: (selfObj: TSelf, _args: Parameters<TMethod>[0]) => ReturnType<TMethod>,
-): ReturnType<TMethod> {
-	return callBase({ args, self: selfObj }, middlewares, (args) => {
-		return method(selfObj, args);
-	});
-}
-
-/*
- * Wrap given method with given middlewares.
- */
-export function WrapMethod<TSelf, TMethod extends Method<TSelf>>(
-	middlewares: MethodMiddlewares<TSelf, TMethod>,
-	method: (selfObj: TSelf, _args: Parameters<TMethod>[0]) => ReturnType<TMethod>,
-): typeof method {
-	return (selfObj, args) => {
-		return CallMethod(selfObj, args, middlewares, method);
-	};
-}
-
-// TODO
-
-export function CallMethodSelf() {}
-
-export function WrapMethodSelf() {}

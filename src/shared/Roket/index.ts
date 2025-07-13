@@ -1,6 +1,8 @@
 import { RunService } from "@rbxts/services";
 
 export * as Middleware from "./Middleware";
+export * as RFn from "./RFunction";
+export * as Types from "./Types";
 
 export default class Roket {
 	public static IsServer() {
