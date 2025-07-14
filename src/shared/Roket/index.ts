@@ -2,7 +2,10 @@ import { RunService } from "@rbxts/services";
 
 export * as Middleware from "./Middleware";
 export * as RFn from "./RFunction";
-export * as Types from "./Types";
+
+export interface Service {
+	OnStart: () => void;
+}
 
 export default class Roket {
 	public static IsServer() {
@@ -17,22 +20,19 @@ export default class Roket {
 		for (const child of moduleScriptsParent.GetChildren()) {
 			if (child.IsA("ModuleScript")) {
 				const attribute = "__RoketStarted";
-				print(">1", child, child.GetAttribute(attribute));
 				if (child.GetAttribute(attribute) === true) {
 					continue;
 				}
-				print(">2", child);
-				const module = require(child);
-				print(">3", child, attribute, module, typeOf(module));
+				const module = require(child); // eslint-disable-line
 				if (
 					typeIs(module, "table") &&
 					"default" in module &&
 					typeIs(module.default, "table") &&
-					"RoketStart" in module.default
+					"OnStart" in module.default
 				) {
 					child.SetAttribute(attribute, true);
-					assert(typeIs(module.default.RoketStart, "function"));
-					module.default.RoketStart();
+					assert(typeIs(module.default.OnStart, "function"));
+					module.default.OnStart();
 				}
 			}
 		}

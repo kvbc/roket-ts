@@ -47,15 +47,30 @@ function splitSource(source: string): Sources {
 		server: "",
 	};
 	let scope: Scope = "shared";
-	for (const line of source.split("\n")) {
+	for (let line of source.split("\n")) {
 		const newScope = getSourceLineScope(line);
 		if (newScope) {
 			scope = newScope;
-		} else if (scope === "shared") {
-			sources.client += line + "\n";
-			sources.server += line + "\n";
 		} else {
-			sources[scope] += line + "\n";
+			// e.g. local Car = TS.import(script, game:GetService("ServerStorage"), "TS", "RoketScripts", "Car").default
+			// into local Car = require(script.Parent, "Car").default
+			line = line.gsub(
+				'TS.import%(script, game:GetService%("ServerStorage"%), "TS", "RoketScripts"',
+				"require(script.Parent",
+			)[0];
+
+			// e.g. local Car = require(script.Parent, "Car").default
+			// into local Car = require(script.Parent.Car).default
+			if (line.find("require%(script.Parent")[0] !== undefined) {
+				line = line.gsub(', "([^"]+)"', ".%1")[0];
+			}
+
+			if (scope === "shared") {
+				sources.client += line + "\n";
+				sources.server += line + "\n";
+			} else {
+				sources[scope] += line + "\n";
+			}
 		}
 	}
 	return sources;

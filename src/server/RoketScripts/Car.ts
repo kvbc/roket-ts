@@ -1,5 +1,4 @@
 import { Middleware } from "shared/Roket";
-import { EmptyObject } from "shared/Roket/Types";
 
 export default class Car {
 	private brand: string;

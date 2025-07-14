@@ -1,4 +1,4 @@
-import { Middleware } from "shared/Roket";
+import { Middleware, Service } from "shared/Roket";
 import Car from "./Car";
 
 function myPrint(args: { message: string; color?: string }) {
@@ -17,16 +17,20 @@ const specialPrint = Middleware.Wrap(
 );
 
 export default class Test {
-	static RoketStart() {
+	static OnStart() {
 		print("test service started");
 
 		//#server
-		print("server");
-		myPrint({ message: "whats up?" });
+		{
+			print("server");
+			myPrint({ message: "whats up?" });
+		}
 		//#client
-		print("client");
-		specialPrint({ message: "aight thats my special print because", color: "pink" });
-		// Middleware.Call(myPrint, mentionColorMiddleware, { message: "this is not a joke", color: "red" });
+		{
+			print("client");
+			specialPrint({ message: "aight thats my special print because", color: "pink" });
+			// Middleware.Call(myPrint, mentionColorMiddleware, { message: "this is not a joke", color: "red" });
+		}
 		//#end
 
 		const car = new Car("toyota", "blue", 600);
