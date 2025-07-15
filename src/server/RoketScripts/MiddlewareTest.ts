@@ -1,3 +1,5 @@
+// #ignore
+
 import { Middleware, Service } from "shared/Roket";
 import Car from "./Car";
 
@@ -11,7 +13,7 @@ const mentionColorMiddleware: Middleware.Fn<typeof myPrint> = (args) => {
 
 const specialPrint = Middleware.Wrap(
 	{
-		before: [mentionColorMiddleware],
+		Before: [mentionColorMiddleware],
 	},
 	myPrint,
 );

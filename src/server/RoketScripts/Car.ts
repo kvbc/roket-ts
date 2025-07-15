@@ -4,7 +4,7 @@ export default class Car {
 	private brand: string;
 	private color: string;
 	private mileage: number;
-	public middlewares: Middleware.Middlewares<Car>;
+	public middlewares: Middleware.MiddlewaresOf<Car>;
 
 	constructor(brand: string, color: string, mileage: number) {
 		this.brand = brand;
@@ -12,7 +12,7 @@ export default class Car {
 		this.mileage = mileage;
 		this.middlewares = {
 			Drive: {
-				before: [
+				Before: [
 					(args, car) => {
 						print(args);
 					},

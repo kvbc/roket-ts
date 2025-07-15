@@ -52,6 +52,13 @@ function splitSource(source: string): Sources {
 		if (newScope) {
 			scope = newScope;
 		} else {
+			if (line.match("^%s*--%s*#ignore")[0] !== undefined) {
+				return {
+					client: "",
+					server: "",
+				};
+			}
+
 			// e.g. local Car = TS.import(script, game:GetService("ServerStorage"), "TS", "RoketScripts", "Car").default
 			// into local Car = require(script.Parent, "Car").default
 			line = line.gsub(
@@ -87,6 +94,7 @@ export function bootstrap() {
 
 	const clientFolder = ensureEmptyFolder(ReplicatedStorage, "__Roket");
 	const clientScriptsFolder = ensureEmptyFolder(clientFolder, "Scripts");
+	ensureEmptyFolder(clientFolder, "Events");
 	{
 		const clientRuntime = script.Parent!.WaitForChild("clientRuntime").Clone() as LocalScript;
 		clientRuntime.Parent = ensureEmptyFolder(StarterPlayer.WaitForChild("StarterPlayerScripts"), "__Roket");
@@ -96,9 +104,6 @@ export function bootstrap() {
 	const scripts = ServerStorage.WaitForChild("TS").WaitForChild("RoketScripts").GetChildren();
 	for (const child of scripts) {
 		if (child.IsA("ModuleScript")) {
-			if (child.Source.match("^--#ignore")[0] !== undefined) {
-				continue;
-			}
 			const sources = splitSource(child.Source);
 			insertModuleScript(serverScriptsFolder, child.Name, sources.server);
 			insertModuleScript(clientScriptsFolder, child.Name, sources.client);

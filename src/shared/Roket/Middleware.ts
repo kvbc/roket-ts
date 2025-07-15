@@ -76,22 +76,22 @@ import { RFn } from "./RFunction";
 
 type Middleware<TFn extends RFn.Fn = RFn.Fn> = RFn.Fn<RFn.Args<TFn>, RFn.Ret<TFn> | void, RFn.This<TFn>>;
 type Middlewares<TFn extends RFn.Fn = RFn.Fn> = Partial<{
-	before: Middleware<TFn>[];
-	after: Middleware<TFn>[];
+	Before: Middleware<TFn>[];
+	After: Middleware<TFn>[];
 }>;
 type KeyedMiddlewares<_TSelf extends { middlewares: unknown }, TSelf = Omit<_TSelf, "middlewares">> = Partial<{
 	[K in keyof TSelf as TSelf[K] extends RFn.Fn ? K : never]: TSelf[K] extends RFn.Fn ? Middlewares<TSelf[K]> : never;
 }>;
 
-export { Middleware as Fn, Middlewares as Fns, KeyedMiddlewares as Middlewares };
+export { Middleware as Fn, Middlewares as Fns, KeyedMiddlewares as MiddlewaresOf, Middlewares };
 
-export function call<TFn extends RFn.Fn>(
+export function CallWith<TFn extends RFn.Fn>(
 	args: RFn.Args<TFn>,
 	middlewares: Middlewares<TFn>,
 	fn: TFn,
 	fnThis: RFn.This<TFn>,
 ): RFn.Ret<TFn> {
-	for (const middleware of middlewares.before ?? []) {
+	for (const middleware of middlewares.Before ?? []) {
 		const ret: unknown = middleware(args, fnThis);
 		if (ret !== undefined) {
 			return ret as RFn.Ret<TFn>;
@@ -100,7 +100,7 @@ export function call<TFn extends RFn.Fn>(
 
 	const funcRet = fn(args, fnThis);
 
-	for (const middleware of middlewares.after ?? []) {
+	for (const middleware of middlewares.After ?? []) {
 		const ret: unknown = middleware(args, fnThis) as RFn.Ret<TFn>;
 		if (ret !== undefined) {
 			return ret as RFn.Ret<TFn>;
@@ -118,7 +118,7 @@ export function Call<TFn extends RFn.Fn>(
 	middlewares: Middlewares<TFn>,
 	fn: RFn.Fn<RFn.Args<TFn>, RFn.Ret<TFn>, undefined>,
 ): RFn.Ret<TFn> {
-	return call<typeof fn>(args, middlewares, fn, undefined);
+	return CallWith<typeof fn>(args, middlewares, fn, undefined);
 }
 
 export function Wrap<TFn extends RFn.Fn>(
@@ -139,11 +139,11 @@ export function WrapKey<
 >(key: keyof RFn.This<TFn>, func: TFn): (this: RFn.This<TFn>, args: RFn.Args<TFn>) => RFn.Ret<TFn> {
 	return function (args) {
 		const nokeyMiddlewares: Middlewares<TFn> = {
-			before: [],
-			after: [],
+			Before: [],
+			After: [],
 		};
 		const middlewares: Middlewares<TFn> =
 			key === undefined ? nokeyMiddlewares : (this.middlewares[key] ?? nokeyMiddlewares);
-		return call<TFn>(args, middlewares, func, this);
+		return CallWith<TFn>(args, middlewares, func, this);
 	};
 }
